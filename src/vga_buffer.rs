@@ -51,7 +51,7 @@ const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
 /// A filled VGA Buffer (2D array of characters)
-// The volatile wrapper tells the compiler to remove this
+// The volatile wrapper tells the compiler not to remove this
 // as it has side effects we need
 #[repr(transparent)]
 struct Buffer {
@@ -77,7 +77,6 @@ impl Writer {
 
                 let row = BUFFER_HEIGHT - 1;
                 let col = self.column_position;
-
                 let color_code = self.color_code;
 
                 self.buffer.chars[row][col].write(ScreenChar {
@@ -110,15 +109,18 @@ impl Writer {
                 self.buffer.chars[row - 1][col].write(character);
             }
         }
+
         self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
     }
 
+    /// Fill a row with blank characters
     fn clear_row(&mut self, row: usize) -> () {
         let blank = ScreenChar {
             ascii_character: b' ',
             color_code: self.color_code,
         };
+
         for col in 0..BUFFER_WIDTH {
             self.buffer.chars[row][col].write(blank);
         }
@@ -157,6 +159,7 @@ lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new( Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
+        // Unsafe code just lets us write a mutable reference to the memory location 0xb8000
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
